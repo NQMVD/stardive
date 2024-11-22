@@ -1,0 +1,348 @@
+local arg = arg or { ... }
+local parser = require '/lib/argparse' ()
+    :name(arg[0])
+    :description 'Shows tier progression on monitors.'
+
+parser:argument('monitor', 'the monitor to use')
+
+local args = parser:parse(arg)
+
+local name = args.monitor
+
+local showButtons = false
+
+-- libs ---------------------------------------------------------------
+
+local tableStorage = require '/lib/tableStorage'
+local butter = require '/lib/buttons'
+local log = require '/lib/log'
+
+local tiers = require 'moniStuff'
+
+local pretty = require 'cc.pretty'.pretty
+local pprint = require 'cc.pretty'.pretty_print
+local wrap = require 'cc.strings'.wrap
+local split = require 'cc.strings'.split
+-- local ensure_width = require'cc.strings'.ensure_width
+
+local unpack = table.unpack or unpack
+local f = string.format
+
+-- ROM --------------------------------------------------------------
+
+local machines = { "Wiremill", "Macerator", "Arc Furnace", "Extractor", "Electric Furnace", "Centrifuge",
+    "Atomic Reconstructor" }
+assert(#machines <= 7, "max of 7 machines per monitor!")
+
+-- setup --------------------------------------------------------------
+
+local monitor = peripheral.wrap(name)
+monitor.setTextScale(1)
+require '/lib/tierColors' (monitor)
+local monitorWidth, monitorHeight = monitor.getSize()
+
+local isLocked = true
+local lockButtonId = butter.idCounter
+local buttons = {}
+
+local lockButtonClick = function(state)
+    isLocked = not state
+    buttons[lockButtonId].state = state
+    if state then
+        buttons[lockButtonId].label = '[UNLOCKED]'
+    else
+        buttons[lockButtonId].label = '[LOCKED]'
+    end
+end
+table.insert(buttons, butter.idCounter, butter.createButton {
+    x = 2,
+    y = monitorHeight - 2,
+    width = 10,
+    height = 1,
+    label = "[LOCKED]",
+    isToggle = true,
+    onClick = lockButtonClick,
+    monitor = monitor,
+    colors = { bg = colors.black, fg = colors.red, bgOn = colors.black, fgOn = colors.lime },
+    border = false
+})
+
+local defaultData = {}
+for i = 1, 7 do
+    defaultData[i] = {}
+    defaultData[i].name = machines[i]
+
+    defaultData[i].type = 'tier'
+
+    defaultData[i].tier = 1
+    defaultData[i].count = {}
+
+    for j = 1, 7 do
+        defaultData[i].count[j] = 0
+    end
+end
+
+local machineData = tableStorage.load('machineData', 7, defaultData)
+
+local function getCurrentHighestTier()
+    local maxVal = 0
+    for _, m in ipairs(machineData) do
+        if m.tier > maxVal then
+            maxVal = m.tier
+        end
+    end
+    return maxVal
+end
+
+local tierLimit = getCurrentHighestTier() + 1
+
+local dims = {
+    grid = {
+        start = {
+            x = 2, y = 6
+        },
+        box = {
+            w = 9.7, h = 6
+        },
+        limitColumn = {
+            x = 0, padding = 5
+        },
+        spacing = 2
+    }
+}
+
+dims.grid.columns = {
+    { name = { x = 0 },  tiers = { x = 0 },  counts = { x = 1 } },
+    { name = { x = 10 }, tiers = { x = 10 }, counts = { x = 11 } },
+    { name = { x = 20 }, tiers = { x = 21 }, counts = { x = 21 } },
+    { name = { x = 30 }, tiers = { x = 32 }, counts = { x = 32 } },
+    { name = { x = 42 }, tiers = { x = 42 }, counts = { x = 43 } },
+    { name = { x = 53 }, tiers = { x = 53 }, counts = { x = 54 } },
+    { name = { x = 64 }, tiers = { x = 64 }, counts = { x = 65 } },
+}
+
+for i, v in ipairs(dims.grid.columns) do
+    v.name.y = 0
+    v.tiers.y = 2
+    v.counts.y = 2
+end
+
+dims.grid.limitColumn.x = monitorWidth - dims.grid.box.w + dims.grid.limitColumn.padding
+
+
+-- drawing functions --------------------------------------------------------------
+
+local function getCenteredX(text, boxWidth)
+    local textWidth = #text
+    return math.floor((boxWidth - textWidth) / 2)
+end
+
+local function drawMachineName(x, y, machine)
+    monitor.setBackgroundColor(colors.black)
+    monitor.setTextColor(colors.white)
+
+    local lines = split(machine, '%s+')
+    local line1 = lines[1] or ''
+    local line2 = lines[2] or ''
+
+    local centerX1 = x + getCenteredX(line1, dims.grid.box.w)
+    local centerX2 = x + getCenteredX(line2, dims.grid.box.w)
+
+    monitor.setCursorPos(centerX1, y)
+    monitor.write(line1)
+
+    monitor.setCursorPos(centerX2, y + 1)
+    monitor.write(line2)
+end
+
+local function drawTierColumn(i, j, tier)
+    local x = dims.grid.start.x + dims.grid.columns[i].tiers.x
+    local y = dims.grid.start.y + dims.grid.columns[i].tiers.y + j
+
+    local currentTier = machineData[i].tier
+
+    local tierText = (j == currentTier) and (" >" .. tier[1]) or ("  " .. tier[1])
+    local tierCenterX = x + getCenteredX(tierText, dims.grid.box.w)
+
+    monitor.setCursorPos(x, y)
+
+    monitor.setBackgroundColor(colors.black)
+    if j <= currentTier then
+        monitor.setTextColor(tier[2])
+    else
+        monitor.setTextColor(colors.gray)
+    end
+
+    monitor.write(tierText)
+
+    monitor.setBackgroundColor(colors.black)
+    monitor.setTextColor(colors.white)
+end
+
+local function drawCounterColumn(i, j, tier)
+    local x = dims.grid.start.x + dims.grid.columns[i].counts.x
+    local y = dims.grid.start.y + dims.grid.columns[i].counts.y + j
+
+    local count = machineData[i].count[j] or 0
+    local tierName, tierColor = unpack(tier)
+
+    monitor.setCursorPos(x, y)
+    monitor.setBackgroundColor(colors.black)
+
+    local tierText = f("%-3s", tierName)
+
+    if count > 0 then
+        monitor.setTextColor(tierColor)
+        monitor.write(tierText)
+        monitor.setTextColor(colors.lightGray)
+        monitor.write(" -")
+        monitor.setTextColor(tierColor)
+        monitor.write(count)
+        monitor.setTextColor(colors.lightGray)
+        monitor.write("+")
+    else
+        monitor.setTextColor(colors.gray)
+        monitor.write(tierText)
+        monitor.setTextColor(colors.gray)
+        monitor.write(f(" -%d+", count))
+    end
+
+    monitor.setTextColor(colors.white)
+end
+
+local function drawTierLimitColumn()
+    -- monitor.setCursorPos(dims.grid.limitColumn.x + getCenteredX("Limit", dims.grid.box.w) + 1, dims.grid.start.y)
+    monitor.setCursorPos(dims.grid.limitColumn.x, dims.grid.start.y)
+    monitor.setBackgroundColor(colors.black)
+    monitor.setTextColor(colors.white)
+    monitor.write("Limit")
+
+    for j, tier in ipairs(tiers) do
+        local y = dims.grid.start.y + dims.grid.spacing + j
+        local tierText = tier[1]
+        local tierCenterX = dims.grid.limitColumn.x + getCenteredX(tierText, dims.grid.box.w)
+
+        monitor.setCursorPos(dims.grid.limitColumn.x + 1, y)
+
+        if j <= tierLimit then
+            monitor.setTextColor(colors.lightGray)
+        else
+            monitor.setTextColor(colors.gray)
+        end
+
+        monitor.write(tierText)
+    end
+end
+
+local function drawGrid()
+    for i, machine in ipairs(machines) do
+        local x = dims.grid.start.x + dims.grid.columns[i].name.x
+        local y = dims.grid.start.y + dims.grid.columns[i].name.y
+
+        drawMachineName(x, y, machine)
+
+        for j, tier in ipairs(tiers) do
+            if j > tierLimit then break end
+
+            if machineData[i].type == 'tier' then
+                drawTierColumn(i, j, tier)
+            elseif machineData[i].type == 'count' then
+                drawCounterColumn(i, j, tier)
+            end
+        end
+    end
+
+    drawTierLimitColumn()
+end
+
+local function redraw()
+    monitor.clear()
+    drawGrid()
+    butter.drawButtons(buttons)
+end
+
+-- update functions --------------------------------------------------------------
+
+-- Detect if the Tier Limit column is clicked
+local function getClickedTierLimit(x, y)
+    if x >= dims.grid.limitColumn.x and x < dims.grid.limitColumn.x + dims.grid.box.w then
+        for j, _ in ipairs(tiers) do
+            local my = dims.grid.start.y + dims.grid.spacing + j
+            if y == my then
+                return j -- Return the tier index clicked
+            end
+        end
+    end
+    return nil
+end
+
+-- Helper to find the clicked machine and tier
+local function getClickedMachineAndTier(x, y)
+    for i, machine in ipairs(machines) do
+        local mx = dims.grid.start.x + dims.grid.columns[i].tiers.x
+        if x >= mx and x < mx + dims.grid.box.w then
+            for j, _ in ipairs(tiers) do
+                local my = dims.grid.start.y + dims.grid.columns[i].tiers.y + j
+                if y == my then
+                    if machineData[i].type == 'tier' then
+                        return i, j
+                    elseif machineData[i].type == 'count' then
+                        if x == mx + 5 then
+                            return i, j, -1
+                        elseif x == mx + 7 then
+                            return i, j, 1
+                        end
+                    end
+                end
+            end
+
+            if y == dims.grid.start.y or y == dims.grid.start.y + 1 then
+                return i, 0
+            end
+        end
+    end
+    return nil, nil
+end
+
+-- Main Program --------------------------------------------------------------
+redraw()
+
+while true do
+    local event, side, x, y = os.pullEvent("monitor_touch")
+    if side == peripheral.getName(monitor) then
+        butter.handleEvent(buttons, side, x, y)
+    end
+
+    local machineIndex, tierIndex, countChange = getClickedMachineAndTier(x, y)
+
+    if machineIndex and tierIndex then
+        if tierIndex == 0 then -- Clicked the machine name
+            if machineData[machineIndex].type == 'tier' then
+                machineData[machineIndex].type = 'count'
+            elseif machineData[machineIndex].type == 'count' then
+                machineData[machineIndex].type = 'tier'
+            end
+        else -- Clicked a tier
+            if not isLocked then
+                if machineData[machineIndex].type == 'tier' then
+                    machineData[machineIndex].tier = math.min(tierLimit, tierIndex)
+                    lockButtonClick(false)
+                elseif machineData[machineIndex].type == 'count' then
+                    machineData[machineIndex].count[tierIndex] =
+                        math.max(machineData[machineIndex].count[tierIndex] + countChange, 0)
+                end
+            end
+        end
+    end
+
+
+    -- Check if the Tier Limit column was clicked
+    local clickedTierLimit = getClickedTierLimit(x, y)
+    if clickedTierLimit then
+        tierLimit = math.max(getCurrentHighestTier() + 1, clickedTierLimit)
+    end
+
+    redraw()
+
+    tableStorage.save('machineData', machineData)
+end
