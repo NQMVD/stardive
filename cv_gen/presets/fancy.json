@@ -1,0 +1,17 @@
+{
+  "fontFamily": "Inter, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif",
+  "baseFontSize": 11,
+  "textColor": "#0b1220",
+  "accentColor": "#7c3aed",
+  "bgAccent": "#f3e8ff",
+  "sectionSpacing": 12,
+  "lineHeight": 1.55,
+  "pageMargin": { "top": 14, "right": 14, "bottom": 14, "left": 14 },
+  "columnGap": 10,
+  "showSidebar": true,
+  "sidebarWidth": 66,
+  "dividerColor": "#e2e8f0",
+  "headingTransform": "uppercase",
+  "headingLetterSpacing": "0.12em",
+  "bulletChar": "✦"
+}

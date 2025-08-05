@@ -1,0 +1,26 @@
+
+
+_default:
+    @just --list
+
+
+normal:
+    bun run src/render.mjs
+
+fancy:
+    bun run src/render.mjs --personal ./configs/personal.json --style ./presets/fancy.json --out ./dist/max-fancy.pdf
+
+header:
+    bun run src/render.mjs --personal ./configs/personal.json --style ./presets/style.fancy-header.json --out ./output/cv-fancy.pdf
+
+organic:
+    bun run src/render.mjs --personal ./configs/personal.json --style ./presets/style.organic-circle.json --out ./output/cv-organic.pdf
+
+brutal:
+    bun run src/render.mjs --personal ./configs/personal.json --style ./presets/style.brutalism.json --out ./output/cv-brutal.pdf
+
+highclass:
+    bun run src/render.mjs --personal ./configs/personal.json --style ./presets/highclass.json --html ./dist/debug.html --out ./dist/max-class.pdf
+
+all: normal fancy highclass
+    @echo Done!

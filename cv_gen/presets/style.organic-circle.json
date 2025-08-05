@@ -1,0 +1,27 @@
+
+{
+  "fontFamily": "SF Pro Text, Inter, Roboto, Arial, sans-serif",
+  "baseFontSize": 11,
+  "textColor": "#0f172a",
+  "accentColor": "#2563eb",
+  "bgAccent": "#e0f2fe",
+  "sectionSpacing": 10,
+  "lineHeight": 1.6,
+  "pageMargin": { "top": 16, "right": 16, "bottom": 16, "left": 16 },
+  "columnGap": 9,
+  "showSidebar": true,
+  "sidebarWidth": 62,
+  "dividerColor": "#dbeafe",
+  "headingTransform": "uppercase",
+  "headingLetterSpacing": "0.08em",
+  "bulletChar": "•",
+  "circlePortrait": {
+    "enable": true,
+    "gap": 4,
+    "ringColor": "#ffffff",
+    "blobColor": "#eff6ff"
+  },
+  "header": {
+    "enable": false
+  }
+}

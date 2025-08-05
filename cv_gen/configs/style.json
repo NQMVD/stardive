@@ -1,0 +1,17 @@
+{
+  "fontFamily": "Inter, Roboto, Arial, sans-serif",
+  "baseFontSize": 11,
+  "textColor": "#1f2937",
+  "accentColor": "#1d4ed8",
+  "bgAccent": "#eff6ff",
+  "sectionSpacing": 10,
+  "lineHeight": 1.5,
+  "pageMargin": { "top": 16, "right": 16, "bottom": 16, "left": 16 },
+  "columnGap": 8,
+  "showSidebar": true,
+  "sidebarWidth": 64,
+  "dividerColor": "#d1d5db",
+  "headingTransform": "uppercase",
+  "headingLetterSpacing": "0.08em",
+  "bulletChar": "•"
+}

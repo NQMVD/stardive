@@ -1,0 +1,32 @@
+{
+  "fontFamily": "Helvetica, Arial, sans-serif",
+  "baseFontSize": 12,
+  "textColor": "#000000",
+  "accentColor": "#000000",
+  "bgAccent": "#ffe566",
+  "sectionSpacing": 12,
+  "lineHeight": 1.5,
+  "pageMargin": { "top": 16, "right": 16, "bottom": 16, "left": 16 },
+  "columnGap": 8,
+  "showSidebar": true,
+  "sidebarWidth": 64,
+  "dividerColor": "#000000",
+  "headingTransform": "uppercase",
+  "headingLetterSpacing": "0.04em",
+  "bulletChar": "■",
+  "brutalism": {
+    "enable": true,
+    "borderColor": "#000000",
+    "borderWidth": 2,
+    "shadow": "6px 6px 0 #000",
+    "accentBg": "#ffe566"
+  },
+  "header": {
+    "enable": true,
+    "photoInHeader": false,
+    "height": 40,
+    "showDivider": false,
+    "bg": "#ffe566",
+    "variant": "hero--classic"
+  }
+}

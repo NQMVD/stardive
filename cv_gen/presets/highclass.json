@@ -1,0 +1,17 @@
+{
+  "fontFamily": "IBM Plex Sans, Source Sans Pro, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+  "baseFontSize": 11,
+  "textColor": "#111827",
+  "accentColor": "#0f766e",
+  "bgAccent": "#ecfdf5",
+  "sectionSpacing": 10,
+  "lineHeight": 1.6,
+  "pageMargin": { "top": 18, "right": 18, "bottom": 18, "left": 18 },
+  "columnGap": 8,
+  "showSidebar": true,
+  "sidebarWidth": 60,
+  "dividerColor": "#d1d5db",
+  "headingTransform": "none",
+  "headingLetterSpacing": "0.02em",
+  "bulletChar": "•"
+}

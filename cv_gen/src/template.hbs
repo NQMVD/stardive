@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{personal.name}} – Lebenslauf</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>{{{css}}}</style>
+  </head>
+  <body class="{{#if style.brutalism.enable}}is-brutalism{{/if}}">
+    {{#if style.header.enable}}
+    <header
+      class="hero {{#if style.header.photoInHeader}}with-photo{{/if}} {{style.header.variant}}"
+    >
+      <div class="hero-inner">
+        <div class="hero-meta">
+          <div class="name">{{personal.name}}</div>
+          {{#if personal.title}}
+          <div class="role">{{personal.title}}</div>
+          {{/if}}
+          {{#if personal.summary}}
+          <div class="desc">{{{safe personal.summary}}}</div>
+          {{/if}}
+        </div>
+        {{#if style.header.photoInHeader}}
+        {{#if personal.photo}}
+        <div class="hero-photo-wrap">
+          <img class="hero-photo" src="{{personal.photo}}" alt="Foto" />
+        </div>
+        {{/if}}
+        {{/if}}
+      </div>
+      {{#if style.header.showDivider}}
+      <div class="hero-divider"></div>
+      {{/if}}
+    </header>
+    {{/if}}
+
+    <div
+      class="page {{#if style.circlePortrait.enable}}circle-portrait{{/if}}"
+    >
+      {{#if style.showSidebar}}
+      <aside class="sidebar">
+        {{#unless style.header.photoInHeader}}
+        {{#if personal.photo}}
+        <div class="photo-frame">
+          <img class="photo" src="{{personal.photo}}" alt="Foto" />
+        </div>
+        {{/if}}
+        {{/unless}}
+
+        <div class="block">
+          <div class="section-title">Kontakt</div>
+          <div class="contact">
+            {{#if personal.contact.email}}
+            <div><span class="label">E-Mail:</span> <span>{{personal.contact.email}}</span></div>
+            {{/if}}
+            {{#if personal.contact.phone}}
+            <div><span class="label">Telefon:</span> <span>{{personal.contact.phone}}</span></div>
+            {{/if}}
+            {{#if personal.contact.location}}
+            <div><span class="label">Ort:</span> <span>{{personal.contact.location}}</span></div>
+            {{/if}}
+            {{#if personal.links}}
+            {{#each personal.links}}
+            <div><span class="label">{{this.label}}:</span> <span>{{this.url}}</span></div>
+            {{/each}}
+            {{/if}}
+          </div>
+        </div>
+
+        {{#if personal.skills}}
+        <div class="block">
+          <div class="section-title">Fähigkeiten</div>
+          <div>
+            {{#each personal.skills}} <span class="badge">{{this}}</span> {{/each}}
+          </div>
+        </div>
+        {{/if}}
+
+        {{#if personal.languages}}
+        <div class="block">
+          <div class="section-title">Sprachen</div>
+          <ul class="list">
+            {{#each personal.languages}}
+            <li>{{this.name}} – {{this.level}}</li>
+            {{/each}}
+          </ul>
+        </div>
+        {{/if}}
+      </aside>
+      <div class="gap"></div>
+      {{/if}}
+
+      <main class="main">
+        {{#unless style.header.enable}}
+        <header class="section no-break">
+          <div class="name">{{personal.name}}</div>
+          {{#if personal.title}} <div class="role">{{personal.title}}</div> {{/if}}
+          {{#if personal.summary}}
+          <div class="desc" style="margin-top:3mm">{{{safe personal.summary}}}</div>
+          {{/if}}
+        </header>
+        {{/unless}}
+
+        {{#if personal.experience}}
+        <section class="section">
+          <div class="section-title">Berufserfahrung</div>
+          {{#each personal.experience}}
+          <div class="item no-break card">
+            <div class="title">{{this.role}} – {{this.company}}</div>
+            <div class="meta">
+              <div>{{this.start}} – {{this.end}}</div>
+              {{#ifAny this.location this.employmentType}}
+              <div>
+                {{#if this.location}}{{this.location}}{{/if}}
+                {{#if this.employmentType}} · {{this.employmentType}}{{/if}}
+              </div>
+              {{/ifAny}}
+              {{#if this.technologies}}
+              <div>Tech: {{join this.technologies ", "}}</div>
+              {{/if}}
+            </div>
+            {{#if this.summary}} <div class="desc">{{{safe this.summary}}}</div> {{/if}}
+            {{#if this.highlights}}
+            <ul class="list">
+              {{#each this.highlights}} <li>{{{safe this}}}</li> {{/each}}
+            </ul>
+            {{/if}}
+          </div>
+          {{/each}}
+        </section>
+        {{/if}}
+
+        {{#if personal.education}}
+        <section class="section">
+          <div class="section-title">Ausbildung</div>
+          {{#each personal.education}}
+          <div class="item no-break card">
+            <div class="title">{{this.degree}} – {{this.institution}}</div>
+            <div class="meta">
+              <div>{{this.start}} – {{this.end}}</div>
+              {{#if this.location}}<div>{{this.location}}</div>{{/if}}
+            </div>
+            {{#if this.notes}} <div class="desc">{{{safe this.notes}}}</div> {{/if}}
+          </div>
+          {{/each}}
+        </section>
+        {{/if}}
+
+        {{#if personal.projects}}
+        <section class="section">
+          <div class="section-title">Projekte</div>
+          {{#each personal.projects}}
+          <div class="item no-break card">
+            <div class="title">{{this.name}}</div>
+            <div class="meta">
+              {{#if this.link}}<div>{{this.link}}</div>{{/if}}
+              {{#if this.tech}}<div>Tech: {{join this.tech ", "}}</div>{{/if}}
+            </div>
+            {{#if this.description}} <div class="desc">{{{safe this.description}}}</div> {{/if}}
+          </div>
+          {{/each}}
+        </section>
+        {{/if}}
+
+        {{#if personal.certifications}}
+        <section class="section">
+          <div class="section-title">Zertifikate</div>
+          <ul class="list">
+            {{#each personal.certifications}} <li>{{this}}</li> {{/each}}
+          </ul>
+        </section>
+        {{/if}}
+      </main>
+    </div>
+  </body>
+</html>

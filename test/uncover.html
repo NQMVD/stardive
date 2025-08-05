@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UI Layer Viewer - 2D to 3D Isometric</title>
+<style>
+  :root{
+    --bg:#0f1220;
+    --panel:#171b2f;
+    --panel-2:#1e2440;
+    --text:#e8ecff;
+    --muted:#a5b0d6;
+    --accent:#6ea8fe;
+    --accent-2:#7fd1ae;
+    --danger:#ff6b6b;
+    --shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:linear-gradient(180deg,#0c0f1a 0%, var(--bg) 100%);
+    color:var(--text);
+    font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    overflow:hidden;
+  }
+
+  .app{
+    display:grid;
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: 64px 1fr;
+    grid-template-areas:
+      "header header"
+      "sidebar main";
+    height:100%;
+  }
+
+  header{
+    grid-area:header;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 16px;
+    background:rgba(23,27,47,0.8);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid #252c4d;
+  }
+  header h1{
+    font-size:16px;
+    letter-spacing:0.3px;
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:#dce3ff;
+  }
+  header .controls{
+    display:flex; gap:8px; align-items:center;
+  }
+  .btn{
+    background:var(--panel-2);
+    color:var(--text);
+    border:1px solid #2a335b;
+    padding:8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .btn:hover{border-color:#3c4780}
+  .btn-accent{
+    background: linear-gradient(180deg, #2b3e90, #24408f);
+    border:1px solid #3f56b3;
+  }
+  .btn-ghost{
+    background:transparent;
+    border:1px solid #2a335b;
+  }
+  .toggle{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel-2);
+    border:1px solid #2a335b;
+    padding:6px 10px;
+    border-radius:999px;
+  }
+  .toggle input{ accent-color: var(--accent);}
+  .hint{color:var(--muted); font-size:12px}
+
+  aside{
+    grid-area:sidebar;
+    background:var(--panel);
+    border-right:1px solid #252c4d;
+    padding:12px;
+    overflow:auto;
+  }
+
+  .section{
+    background:rgba(30,36,64,0.8);
+    border:1px solid #2a335b;
+    border-radius:12px;
+    padding:12px;
+    margin-bottom:12px;
+    box-shadow: var(--shadow);
+  }
+  .section h2{
+    font-size:13px;
+    margin:0 0 8px 0; color:#cdd6ff; letter-spacing:0.4px
+  }
+  .row{ display:flex; gap:8px; margin-bottom:8px; }
+  .row label{ font-size:12px; color:#b6c0eb }
+  input[type="text"], input[type="number"], input[type="color"]{
+    width:100%;
+    background:#12162a;
+    border:1px solid #2a335b;
+    color:var(--text);
+    padding:8px 10px;
+    border-radius:8px;
+  }
+  input[type="range"]{ width:100% }
+  .small{
+    font-size:12px; color:var(--muted)
+  }
+  .layer-list{
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .layer-item{
+    background: #141a33;
+    border:1px solid #2a335b;
+    border-radius:10px;
+    padding:8px;
+    display:grid;
+    grid-template-columns: 1fr auto;
+    gap:8px;
+  }
+  .layer-head{
+    display:flex; align-items:center; gap:8px; justify-content:space-between;
+  }
+  .layer-name{ font-weight:600 }
+  .chip{
+    background:#0f1a3d;
+    border:1px solid #2a335b;
+    color:#b6c0eb;
+    padding:3px 8px;
+    border-radius:999px;
+    font-size:11px;
+  }
+  .layer-actions{
+    display:flex; gap:6px;
+  }
+  .icon-btn{
+    border:1px solid #2a335b;
+    background:#0f142a;
+    color:#cdd6ff;
+    border-radius:8px;
+    padding:6px;
+    cursor:pointer;
+  }
+  .icon-btn:hover{ border-color:#3c4780 }
+  main{
+    grid-area:main;
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* Viewer */
+  .viewer-wrap{
+    position:absolute; inset:0;
+    display:grid; grid-template-rows:auto 1fr auto;
+  }
+  .viewport{
+    position:relative;
+    overflow:hidden;
+    background:
+      radial-gradient(ellipse at center, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 70%),
+      repeating-linear-gradient(0deg, #1a2247, #1a2247 1px, transparent 1px, transparent 40px),
+      repeating-linear-gradient(90deg, #1a2247, #1a2247 1px, transparent 1px, transparent 40px),
+      linear-gradient(180deg, #0e1330, #0a1028);
+  }
+  .scene{
+    width:100%;
+    height:100%;
+    transform-style:preserve-3d;
+    display:flex; align-items:center; justify-content:center;
+    perspective: 1200px;
+  }
+  .camera{
+    transform-style:preserve-3d;
+    transition: transform 400ms ease;
+  }
+  .canvas{
+    position:relative;
+    width:1200px;
+    height:800px;
+    transform-style:preserve-3d;
+    border:1px dashed #2a335b;
+    background:rgba(10,12,24,0.2);
+  }
+  .ui-layer{
+    position:absolute;
+    transform-style:preserve-3d;
+    border-radius:10px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .ui-layer .title{
+    position:absolute; top:6px; left:8px;
+    font-size:12px; font-weight:700; color:rgba(255,255,255,0.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6)
+  }
+
+  .footer{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 12px; background:rgba(23,27,47,0.6); border-top:1px solid #252c4d
+  }
+  .status{ font-size:12px; color:#9cb2ff }
+  .kbd{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:#0f142a; border:1px solid #2a335b; padding:2px 6px; border-radius:6px; font-size:11px; color:#b6c0eb }
+
+  .ghost{ opacity:0.3; filter:saturate(0.5) brightness(0.9) }
+
+  .toolbar{
+    padding:8px; background:rgba(23,27,47,0.6); border-bottom:1px solid #252c4d; display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  }
+  .slider-group{ display:flex; align-items:center; gap:8px }
+  .slider-group label{ font-size:12px; color:#b6c0eb; width:80px }
+  .slider-group input[type="range"]{ width:220px }
+  .sep{ width:1px; height:28px; background:#2a335b; margin:0 6px }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>UI Layer Viewer <span class="chip">2D ⇄ 3D Isometric</span></h1>
+    <div class="controls">
+      <button id="resetView" class="btn">Reset View</button>
+      <div class="toggle">
+        <input id="modeToggle" type="checkbox"/>
+        <label for="modeToggle">3D Mode</label>
+      </div>
+      <button id="exportBtn" class="btn-ghost btn">Export JSON</button>
+      <button id="importBtn" class="btn">Import JSON</button>
+    </div>
+  </header>
+
+  <aside>
+    <div class="section">
+      <h2>Add Layer</h2>
+      <div class="row">
+        <input id="layerName" type="text" placeholder="Layer name" />
+      </div>
+      <div class="row">
+        <label style="width:84px">Color</label>
+        <input id="layerColor" type="color" value="#6ea8fe"/>
+      </div>
+      <div class="row">
+        <label style="width:84px">Width</label>
+        <input id="layerW" type="number" value="360" min="10" max="2000"/>
+      </div>
+      <div class="row">
+        <label style="width:84px">Height</label>
+        <input id="layerH" type="number" value="200" min="10" max="2000"/>
+      </div>
+      <div class="row">
+        <label style="width:84px">Z-depth</label>
+        <input id="layerZ" type="number" value="60" min="0" max="1000"/>
+      </div>
+      <div class="row">
+        <label style="width:84px">Opacity</label>
+        <input id="layerOpacity" type="range" min="0.1" max="1" step="0.05" value="1"/>
+      </div>
+      <div class="row">
+        <button id="addLayer" class="btn-accent btn" style="width:100%">Add Layer</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Layers</h2>
+      <div id="layers" class="layer-list"></div>
+      <p class="small">Tip: Reorder layers using Up/Down to change stacking. Toggle visibility with the eye icon.</p>
+    </div>
+
+    <div class="section">
+      <h2>Canvas</h2>
+      <div class="row">
+        <label style="width:120px">Width</label>
+        <input id="canvasW" type="number" value="1200" min="200" max="4000"/>
+      </div>
+      <div class="row">
+        <label style="width:120px">Height</label>
+        <input id="canvasH" type="number" value="800" min="200" max="4000"/>
+      </div>
+      <div class="row">
+        <button id="applyCanvas" class="btn" style="width:100%">Apply</button>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="viewer-wrap">
+      <div class="toolbar">
+        <div class="slider-group">
+          <label>Iso Angle</label>
+          <input id="isoAngle" type="range" min="15" max="70" value="35"/>
+        </div>
+        <div class="slider-group">
+          <label>Rotation Y</label>
+          <input id="rotY" type="range" min="-60" max="60" value="45"/>
+        </div>
+        <div class="slider-group">
+          <label>Layer Gap</label>
+          <input id="layerGap" type="range" min="0" max="200" value="60"/>
+        </div>
+        <div class="sep"></div>
+        <span class="hint">Drag to rotate • Shift+Drag to pan • Scroll to zoom</span>
+      </div>
+      <div class="viewport" id="viewport">
+        <div class="scene">
+          <div class="camera" id="camera">
+            <div class="canvas" id="canvas"></div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <div class="status" id="status">2D Mode • Canvas 1200×800</div>
+        <div>
+          <span class="kbd">R</span> reset • <span class="kbd">Space</span> toggle 2D/3D
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('canvas');
+  const camera = document.getElementById('camera');
+  const layersPanel = document.getElementById('layers');
+  const status = document.getElementById('status');
+  const viewport = document.getElementById('viewport');
+
+  const modeToggle = document.getElementById('modeToggle');
+  const resetViewBtn = document.getElementById('resetView');
+  const exportBtn = document.getElementById('exportBtn');
+  const importBtn = document.getElementById('importBtn');
+
+  const isoAngle = document.getElementById('isoAngle');
+  const rotY = document.getElementById('rotY');
+  const layerGap = document.getElementById('layerGap');
+
+  const layerName = document.getElementById('layerName');
+  const layerColor = document.getElementById('layerColor');
+  const layerW = document.getElementById('layerW');
+  const layerH = document.getElementById('layerH');
+  const layerZ = document.getElementById('layerZ');
+  const layerOpacity = document.getElementById('layerOpacity');
+  const addLayerBtn = document.getElementById('addLayer');
+
+  const canvasW = document.getElementById('canvasW');
+  const canvasH = document.getElementById('canvasH');
+  const applyCanvasBtn = document.getElementById('applyCanvas');
+
+  let state = {
+    mode3D:false,
+    iso: Number(isoAngle.value),
+    rotY: Number(rotY.value),
+    layerGap: Number(layerGap.value),
+    zoom: 1,
+    pan:{x:0,y:0},
+    rotXUser: 0,
+    rotYUser: 0,
+    layers:[]
+  };
+
+  function uid(){ return Math.random().toString(36).slice(2,9) }
+
+  function updateStatus(){
+    status.textContent = `${state.mode3D ? '3D Iso Mode' : '2D Mode'} • Canvas ${canvas.offsetWidth}×${canvas.offsetHeight} • Layers ${state.layers.length}`;
+  }
+
+  function setCanvasSize(w,h){
+    canvas.style.width = w+'px';
+    canvas.style.height = h+'px';
+    updateStatus();
+  }
+
+  function addLayer(data){
+    const layer = {
+      id: uid(),
+      name: data.name || `Layer ${state.layers.length+1}`,
+      color: data.color || '#6ea8fe',
+      w: Number(data.w || 360),
+      h: Number(data.h || 200),
+      z: Number(data.z || state.layerGap || 60),
+      opacity: Number(data.opacity ?? 1),
+      x: Math.round((canvas.clientWidth - (data.w||360))/2),
+      y: Math.round((canvas.clientHeight - (data.h||200))/2),
+      visible: true
+    };
+    state.layers.push(layer);
+    renderLayers();
+  }
+
+  function removeLayer(id){
+    state.layers = state.layers.filter(l=>l.id!==id);
+    renderLayers();
+  }
+
+  function moveLayer(id, dir){
+    const idx = state.layers.findIndex(l=>l.id===id);
+    if(idx<0) return;
+    const newIdx = Math.min(state.layers.length-1, Math.max(0, idx + dir));
+    if(newIdx===idx) return;
+    const [item] = state.layers.splice(idx,1);
+    state.layers.splice(newIdx,0,item);
+    renderLayers();
+  }
+
+  function toggleVisible(id){
+    const l = state.layers.find(l=>l.id===id);
+    if(!l) return;
+    l.visible = !l.visible;
+    renderLayers();
+  }
+
+  function updateLayer(id, patch){
+    const l = state.layers.find(l=>l.id===id);
+    if(!l) return;
+    Object.assign(l, patch);
+    renderLayers();
+  }
+
+  function renderLayers(){
+    canvas.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    state.layers.forEach((l, idx)=>{
+      const el = document.createElement('div');
+      el.className = 'ui-layer' + (l.visible ? '' : ' ghost');
+      el.style.width = l.w + 'px';
+      el.style.height = l.h + 'px';
+      el.style.left = l.x + 'px';
+      el.style.top = l.y + 'px';
+      el.style.background = l.color;
+      el.style.opacity = l.opacity;
+      el.style.transform = buildLayerTransform(idx, l);
+
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = l.name;
+      el.appendChild(title);
+
+      // Simple drag to move in 2D plane
+      let dragging = false;
+      let start = {x:0,y:0};
+      el.addEventListener('pointerdown', (e)=>{
+        if(e.button!==0) return;
+        dragging = true;
+        start = {x:e.clientX - l.x, y:e.clientY - l.y};
+        el.setPointerCapture(e.pointerId);
+      });
+      el.addEventListener('pointermove',(e)=>{
+        if(!dragging) return;
+        const nx = Math.round(e.clientX - start.x);
+        const ny = Math.round(e.clientY - start.y);
+        l.x = nx; l.y = ny;
+        el.style.left = l.x + 'px';
+        el.style.top = l.y + 'px';
+      });
+      el.addEventListener('pointerup',()=>{
+        dragging=false;
+      });
+
+      frag.appendChild(el);
+    });
+    canvas.appendChild(frag);
+    renderLayerPanel();
+    applyCamera();
+    updateStatus();
+  }
+
+  function buildLayerTransform(idx, l){
+    const z = idx * state.layerGap;
+    if(!state.mode3D){
+      return `translateZ(0px)`;
+    } else {
+      return `translateZ(${z}px)`;
+    }
+  }
+
+  function renderLayerPanel(){
+    layersPanel.innerHTML = '';
+    state.layers.forEach((l, idx)=>{
+      const item = document.createElement('div');
+      item.className = 'layer-item';
+      item.innerHTML = `
+        <div class="layer-head">
+          <div style="display:flex; align-items:center; gap:8px">
+            <div style="width:12px;height:12px;border-radius:3px;background:${l.color};border:1px solid rgba(255,255,255,0.2)"></div>
+            <div class="layer-name">${l.name}</div>
+            <span class="chip">${l.w}×${l.h}</span>
+            <span class="chip">z${idx*state.layerGap}</span>
+          </div>
+          <div class="layer-actions">
+            <button class="icon-btn" data-act="up">⬆</button>
+            <button class="icon-btn" data-act="down">⬇</button>
+            <button class="icon-btn" data-act="eye">${l.visible?'👁':'🚫'}</button>
+            <button class="icon-btn" data-act="del" style="color:var(--danger)">🗑</button>
+          </div>
+        </div>
+        <div class="row">
+          <input data-field="name" type="text" value="${l.name}" />
+        </div>
+        <div class="row">
+          <label style="width:64px">Color</label>
+          <input data-field="color" type="color" value="${l.color}"/>
+        </div>
+        <div class="row">
+          <label style="width:64px">W</label>
+          <input data-field="w" type="number" value="${l.w}" min="10" max="4000"/>
+          <label style="width:64px">H</label>
+          <input data-field="h" type="number" value="${l.h}" min="10" max="4000"/>
+        </div>
+        <div class="row">
+          <label style="width:64px">X</label>
+          <input data-field="x" type="number" value="${l.x}" />
+          <label style="width:64px">Y</label>
+          <input data-field="y" type="number" value="${l.y}" />
+        </div>
+        <div class="row">
+          <label style="width:64px">Opacity</label>
+          <input data-field="opacity" type="range" min="0.1" max="1" step="0.05" value="${l.opacity}"/>
+        </div>
+      `;
+      item.querySelectorAll('input').forEach(inp=>{
+        inp.addEventListener('input', (e)=>{
+          const field = inp.dataset.field;
+          let v = inp.value;
+          if(['w','h','x','y','z','opacity'].includes(field)){
+            v = Number(v);
+          }
+          updateLayer(l.id, {[field]: v});
+        });
+      });
+      item.querySelector('[data-act="del"]').addEventListener('click', ()=> removeLayer(l.id));
+      item.querySelector('[data-act="up"]').addEventListener('click', ()=> moveLayer(l.id, -1));
+      item.querySelector('[data-act="down"]').addEventListener('click', ()=> moveLayer(l.id, 1));
+      item.querySelector('[data-act="eye"]').addEventListener('click', ()=> toggleVisible(l.id));
+      layersPanel.appendChild(item);
+    });
+  }
+
+  function applyCamera(){
+    // camera controls combine iso angle, user rotation, zoom and pan
+    const iso = state.iso;
+    const baseRotX = -(iso); // tilt down
+    const rotYTotal = state.rotY + state.rotYUser;
+    const rotXTotal = baseRotX + state.rotXUser;
+
+    const pan = state.pan;
+    const zoom = state.zoom;
+
+    camera.style.transform = `
+      translate(${pan.x}px, ${pan.y}px)
+      scale(${zoom})
+      rotateX(${rotXTotal}deg)
+      rotateY(${rotYTotal}deg)
+    `;
+  }
+
+  function setMode3D(on){
+    state.mode3D = !!on;
+    modeToggle.checked = state.mode3D;
+    canvas.style.transition = 'transform 400ms ease';
+    camera.style.transition = 'transform 400ms ease';
+    renderLayers();
+  }
+
+  // Inputs
+  isoAngle.addEventListener('input', ()=>{
+    state.iso = Number(isoAngle.value);
+    applyCamera();
+    updateStatus();
+  });
+  rotY.addEventListener('input', ()=>{
+    state.rotY = Number(rotY.value);
+    applyCamera();
+  });
+  layerGap.addEventListener('input', ()=>{
+    state.layerGap = Number(layerGap.value);
+    renderLayers();
+  });
+
+  addLayerBtn.addEventListener('click', ()=>{
+    addLayer({
+      name: layerName.value || undefined,
+      color: layerColor.value,
+      w: Number(layerW.value),
+      h: Number(layerH.value),
+      z: Number(layerZ.value),
+      opacity: Number(layerOpacity.value)
+    });
+  });
+
+  applyCanvasBtn.addEventListener('click', ()=>{
+    setCanvasSize(Number(canvasW.value), Number(canvasH.value));
+    renderLayers();
+  });
+
+  modeToggle.addEventListener('change', (e)=> setMode3D(e.target.checked));
+  resetViewBtn.addEventListener('click', ()=>{
+    state.zoom = 1;
+    state.pan = {x:0,y:0};
+    state.rotXUser = 0;
+    state.rotYUser = 0;
+    isoAngle.value = 35;
+    rotY.value = 45;
+    state.iso = 35;
+    state.rotY = 45;
+    applyCamera();
+  });
+
+  // Export / Import
+  exportBtn.addEventListener('click', ()=>{
+    const payload = {
+      meta:{ app:'ui-layer-viewer', v:1, date:new Date().toISOString() },
+      canvas:{ w: canvas.clientWidth, h: canvas.clientHeight },
+      view:{
+        mode3D: state.mode3D, iso:state.iso, rotY:state.rotY, gap:state.layerGap,
+        zoom:state.zoom, pan:state.pan, rotXUser:state.rotXUser, rotYUser:state.rotYUser
+      },
+      layers: state.layers
+    };
+    const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ui-layer-scene.json';
+    a.click();
+  });
+
+  importBtn.addEventListener('click', ()=>{
+    const input = document.createElement('input');
+    input.type='file'; input.accept='application/json';
+    input.addEventListener('change', async ()=>{
+      const file = input.files[0];
+      if(!file) return;
+      try{
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if(data.canvas){
+          setCanvasSize(data.canvas.w, data.canvas.h);
+          canvasW.value = data.canvas.w; canvasH.value = data.canvas.h;
+        }
+        if(data.view){
+          Object.assign(state, {
+            mode3D: !!data.view.mode3D,
+            iso: data.view.iso ?? state.iso,
+            rotY: data.view.rotY ?? state.rotY,
+            layerGap: data.view.gap ?? state.layerGap,
+            zoom: data.view.zoom ?? state.zoom,
+            pan: data.view.pan ?? state.pan,
+            rotXUser: data.view.rotXUser ?? 0,
+            rotYUser: data.view.rotYUser ?? 0
+          });
+          isoAngle.value = state.iso;
+          rotY.value = state.rotY;
+          layerGap.value = state.layerGap;
+          modeToggle.checked = state.mode3D;
+        }
+        if(Array.isArray(data.layers)){
+          state.layers = data.layers;
+        }
+        renderLayers();
+      }catch(e){
+        alert('Invalid JSON');
+      }
+    });
+    input.click();
+  });
+
+  // Mouse interactions: rotate, pan, zoom
+  let isDragging=false;
+  let dragMode='rotate'; // or 'pan'
+  let last = {x:0,y:0};
+  viewport.addEventListener('pointerdown', (e)=>{
+    if(e.button!==0) return;
+    isDragging = true;
+    dragMode = e.shiftKey ? 'pan' : 'rotate';
+    last = {x:e.clientX, y:e.clientY};
+    viewport.setPointerCapture(e.pointerId);
+  });
+  viewport.addEventListener('pointermove', (e)=>{
+    if(!isDragging) return;
+    const dx = e.clientX - last.x;
+    const dy = e.clientY - last.y;
+    last = {x:e.clientX, y:e.clientY};
+    if(dragMode==='rotate'){
+      state.rotYUser += dx * 0.2;
+      state.rotXUser += dy * 0.2;
+    }else{
+      state.pan.x += dx;
+      state.pan.y += dy;
+    }
+    applyCamera();
+  });
+  viewport.addEventListener('pointerup', ()=>{
+    isDragging=false;
+  });
+  viewport.addEventListener('wheel', (e)=>{
+    e.preventDefault();
+    const factor = Math.exp(-e.deltaY * 0.0015);
+    state.zoom = Math.max(0.2, Math.min(5, state.zoom * factor));
+    applyCamera();
+  }, {passive:false});
+
+  // Keyboard
+  window.addEventListener('keydown', (e)=>{
+    if(e.code==='Space'){ e.preventDefault(); setMode3D(!state.mode3D); }
+    if(e.key==='r' || e.key==='R'){ resetViewBtn.click(); }
+    if(e.key==='='){ state.zoom=Math.min(5, state.zoom*1.1); applyCamera(); }
+    if(e.key==='-'){ state.zoom=Math.max(0.2, state.zoom/1.1); applyCamera(); }
+    if(e.key==='ArrowUp'){ state.pan.y -= 20; applyCamera(); }
+    if(e.key==='ArrowDown'){ state.pan.y += 20; applyCamera(); }
+    if(e.key==='ArrowLeft'){ state.pan.x -= 20; applyCamera(); }
+    if(e.key==='ArrowRight'){ state.pan.x += 20; applyCamera(); }
+  });
+
+  // Initialize
+  function seed(){
+    setCanvasSize(1200,800);
+    addLayer({name:'Background', color:'#1f2a5c', w:1000, h:640, opacity:0.9});
+    addLayer({name:'Card', color:'#6ea8fe', w:600, h:360, opacity:1});
+    addLayer({name:'Modal', color:'#7fd1ae', w:520, h:280, opacity:0.95});
+  }
+  seed();
+  updateStatus();
+})();
+</script>
+</body>
+</html>

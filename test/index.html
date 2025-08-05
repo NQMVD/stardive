@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>UI Layers Isometric Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #0a0b10;
+        --panel: #101217;
+        --panel-2: #0e1015;
+        --muted: #a7adbe;
+        --text: #f3f5fa;
+        --grid: rgba(255, 255, 255, 0.05);
+        --border-weak: rgba(255, 255, 255, 0.1);
+        --border-strong: rgba(255, 255, 255, 0.18);
+        --elev: rgba(0, 0, 0, 0.55);
+        --radius: 12px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(1200px 800px at 70% 20%, #0e1222, #08090f)
+            no-repeat,
+          var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, Apple Color Emoji,
+          Segoe UI Emoji, Segoe UI Symbol;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        grid-template-rows: 64px 1fr;
+        grid-template-areas:
+          "header header"
+          "sidebar stage";
+        height: 100%;
+      }
+
+      header {
+        grid-area: header;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--border-weak);
+        background: linear-gradient(180deg, #0f1117, #0c0e14);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+
+      header .title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+      }
+      header .title .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #cfd3ff;
+        box-shadow: 0 0 0 3px rgba(200, 205, 255, 0.12);
+      }
+
+      .btn {
+        appearance: none;
+        border: 1px solid var(--border-weak);
+        color: var(--text);
+        background: linear-gradient(180deg, var(--panel), var(--panel-2));
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.08s ease, box-shadow 0.12s ease,
+          border-color 0.2s ease, background 0.2s ease;
+      }
+      .btn:hover {
+        border-color: var(--border-strong);
+        box-shadow: 0 6px 18px var(--elev);
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      .sidebar {
+        grid-area: sidebar;
+        padding: 16px;
+        border-right: 1px solid var(--border-weak);
+        background: linear-gradient(180deg, #0e1016, #0b0d12);
+        overflow: auto;
+      }
+
+      .group {
+        margin-bottom: 16px;
+        background: linear-gradient(180deg, var(--panel), var(--panel-2));
+        border: 1px solid var(--border-weak);
+        border-radius: var(--radius);
+        padding: 12px;
+      }
+
+      .group h3 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #e7ebff;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 8px 0;
+      }
+      .row label {
+        font-size: 13px;
+        color: var(--muted);
+        flex: 1;
+      }
+      .row input[type="range"] {
+        flex: 2;
+        width: 100%;
+      }
+
+      .stage {
+        grid-area: stage;
+        display: grid;
+        place-items: center;
+        perspective: 2200px;
+        user-select: none;
+        position: relative;
+        overflow: hidden; /* allow grid backdrop to extend, but not critical */
+      }
+
+      .canvas-wrap {
+        width: min(1000px, 90vw);
+        height: min(720px, 72vh);
+        position: relative;
+        transform-style: preserve-3d;
+      }
+
+      .grid {
+        position: absolute;
+        inset: -2000px;
+        background-image: linear-gradient(
+            0deg,
+            var(--grid) 1px,
+            transparent 1px
+          ),
+          linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+        background-size: 40px 40px;
+        transform: translateZ(-1000px) rotateX(90deg);
+      }
+
+      .viewport {
+        position: absolute;
+        inset: 0;
+        transform-style: preserve-3d;
+        transition: transform 350ms cubic-bezier(0.2, 0.7, 0, 1);
+        will-change: transform;
+        /* Lift whole scene so positive translateZ moves "up" and stays visible */
+        transform: translateZ(-400px) rotateX(58deg) rotateZ(45deg);
+      }
+
+      .surface {
+        position: absolute;
+        inset: 0;
+        transform-style: preserve-3d;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #0f1118, #0c0e15);
+        border: 1px solid var(--border-weak);
+        /* Key fix: don't clip children during explode */
+        overflow: visible;
+        box-shadow: 0 30px 80px var(--elev);
+      }
+
+      .layer {
+        position: absolute;
+        border-radius: 12px;
+        transform-style: preserve-3d;
+        border: 1px solid var(--border-weak);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.55);
+        transition: transform 220ms cubic-bezier(0.2, 0.7, 0, 1),
+          opacity 200ms ease, box-shadow 200ms ease;
+        overflow: visible; /* also ensure no self-clipping */
+        will-change: transform, opacity;
+        --z: 0;
+        filter: drop-shadow(0 calc(var(--z) * 0.02px) calc(var(--z) * 0.06px)
+            rgba(0, 0, 0, 0.6));
+      }
+      .layer.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* Dark components */
+      .header {
+        left: 20px;
+        right: 20px;
+        top: 20px;
+        height: 64px;
+        background: linear-gradient(180deg, #181b24, #141820);
+      }
+      .sidebar-ui {
+        left: 20px;
+        top: 100px;
+        width: 260px;
+        bottom: 20px;
+        background: linear-gradient(180deg, #171a22, #141720);
+      }
+      .content {
+        left: 300px;
+        top: 100px;
+        right: 20px;
+        bottom: 20px;
+        background: linear-gradient(180deg, #131620, #11141c);
+      }
+      .modal {
+        width: 520px;
+        height: 320px;
+        left: calc(50% - 260px);
+        top: calc(50% - 160px);
+        background: linear-gradient(180deg, #1a1d28, #161a22);
+        border: 1px solid var(--border-strong);
+      }
+
+      /* Decorative bits */
+      .header .logo {
+        position: absolute;
+        left: 20px;
+        top: 18px;
+        width: 120px;
+        height: 28px;
+        background: linear-gradient(90deg, #e5e8ff, #c9cdf9);
+        border-radius: 6px;
+      }
+      .header .tabs {
+        position: absolute;
+        left: 160px;
+        top: 18px;
+        display: flex;
+        gap: 8px;
+      }
+      .header .tab {
+        width: 86px;
+        height: 28px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--border-weak);
+      }
+
+      .sidebar-ui .nav {
+        position: absolute;
+        top: 16px;
+        left: 14px;
+        right: 14px;
+        display: grid;
+        gap: 10px;
+      }
+      .sidebar-ui .nav .item {
+        height: 36px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border-weak);
+      }
+
+      .content .cards {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .content .card {
+        border-radius: 10px;
+        background: linear-gradient(180deg, #181b24, #141820);
+        border: 1px solid var(--border-weak);
+      }
+
+      .modal .title {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        height: 20px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.16);
+      }
+      .modal .body {
+        position: absolute;
+        top: 50px;
+        left: 16px;
+        right: 16px;
+        bottom: 60px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .modal .actions {
+        position: absolute;
+        bottom: 14px;
+        right: 16px;
+        display: flex;
+        gap: 10px;
+      }
+      .modal .btn2 {
+        width: 90px;
+        height: 32px;
+        border-radius: 8px;
+        background: linear-gradient(180deg, #eef0ff, #d6dafc);
+        border: 1px solid var(--border-strong);
+        box-shadow: 0 10px 18px rgba(190, 196, 255, 0.18);
+      }
+
+      .footer-note {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        opacity: 0.9;
+      }
+
+      /* 2D / 3D presets */
+      .flat .viewport {
+        transform: translateZ(0) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+      }
+      .isometric .viewport {
+        transform: translateZ(-400px) rotateX(58deg) rotateY(0deg)
+          rotateZ(45deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div class="title">
+          <div class="dot"></div>
+          <div>UI Layers Isometric Viewer</div>
+        </div>
+        <div class="actions">
+          <button id="toggleMode" class="btn">Toggle 2D / 3D</button>
+          <button id="resetView" class="btn">Reset View</button>
+        </div>
+      </header>
+
+      <aside class="sidebar">
+        <div class="group">
+          <h3>Layers</h3>
+          <div class="checkbox">
+            <input id="chkHeader" type="checkbox" checked />
+            <label for="chkHeader">Header</label>
+          </div>
+          <div class="checkbox">
+            <input id="chkSidebar" type="checkbox" checked />
+            <label for="chkSidebar">Sidebar</label>
+          </div>
+          <div class="checkbox">
+            <input id="chkContent" type="checkbox" checked />
+            <label for="chkContent">Content</label>
+          </div>
+          <div class="checkbox">
+            <input id="chkModal" type="checkbox" checked />
+            <label for="chkModal">Modal</label>
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Layer Depth</h3>
+          <div class="row">
+            <label for="depthHeader">Header</label>
+            <input
+              id="depthHeader"
+              type="range"
+              min="0"
+              max="1000"
+              value="80"
+            />
+          </div>
+          <div class="row">
+            <label for="depthSidebar">Sidebar</label>
+            <input
+              id="depthSidebar"
+              type="range"
+              min="0"
+              max="1000"
+              value="200"
+            />
+          </div>
+          <div class="row">
+            <label for="depthContent">Content</label>
+            <input
+              id="depthContent"
+              type="range"
+              min="0"
+              max="1000"
+              value="320"
+            />
+          </div>
+          <div class="row">
+            <label for="depthModal">Modal</label>
+            <input
+              id="depthModal"
+              type="range"
+              min="0"
+              max="1000"
+              value="480"
+            />
+          </div>
+          <div class="row">
+            <label for="depthScale">Global depth scale</label>
+            <input id="depthScale" type="range" min="0" max="200" value="100" />
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>View</h3>
+          <div class="row">
+            <label for="rotY">Rotate Y</label>
+            <input id="rotY" type="range" min="-180" max="180" value="0" />
+          </div>
+          <div class="row">
+            <label for="rotX">Rotate X</label>
+            <input id="rotX" type="range" min="-10" max="85" value="58" />
+          </div>
+          <div class="row">
+            <label for="rotZ">Rotate Z</label>
+            <input id="rotZ" type="range" min="-180" max="180" value="45" />
+          </div>
+        </div>
+      </aside>
+
+      <main class="stage isometric" id="stage">
+        <div class="canvas-wrap" id="canvas">
+          <div class="grid"></div>
+          <div class="viewport" id="viewport">
+            <div class="surface" id="surface">
+              <div class="layer header" id="layerHeader">
+                <div class="logo"></div>
+                <div class="tabs">
+                  <div class="tab"></div>
+                  <div class="tab"></div>
+                  <div class="tab"></div>
+                </div>
+              </div>
+
+              <div class="layer sidebar-ui" id="layerSidebar">
+                <div class="nav">
+                  <div class="item"></div>
+                  <div class="item"></div>
+                  <div class="item"></div>
+                  <div class="item"></div>
+                  <div class="item"></div>
+                  <div class="item"></div>
+                </div>
+              </div>
+
+              <div class="layer content" id="layerContent">
+                <div class="cards">
+                  <div class="card"></div>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                </div>
+              </div>
+
+              <div class="layer modal" id="layerModal">
+                <div class="title"></div>
+                <div class="body"></div>
+                <div class="actions">
+                  <div class="btn2"></div>
+                  <div class="btn2"></div>
+                </div>
+              </div>
+
+              <div class="footer-note">Drag to rotate · Scroll to change depth</div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const qs = (s) => document.querySelector(s);
+
+      const stage = qs("#stage");
+      const viewport = qs("#viewport");
+
+      const inputs = {
+        chkHeader: qs("#chkHeader"),
+        chkSidebar: qs("#chkSidebar"),
+        chkContent: qs("#chkContent"),
+        chkModal: qs("#chkModal"),
+        depthHeader: qs("#depthHeader"),
+        depthSidebar: qs("#depthSidebar"),
+        depthContent: qs("#depthContent"),
+        depthModal: qs("#depthModal"),
+        depthScale: qs("#depthScale"),
+        rotX: qs("#rotX"),
+        rotY: qs("#rotY"),
+        rotZ: qs("#rotZ"),
+      };
+
+      const layers = {
+        Header: qs("#layerHeader"),
+        Sidebar: qs("#layerSidebar"),
+        Content: qs("#layerContent"),
+        Modal: qs("#layerModal"),
+      };
+
+      function applyVisibility() {
+        layers.Header.classList.toggle("hidden", !inputs.chkHeader.checked);
+        layers.Sidebar.classList.toggle("hidden", !inputs.chkSidebar.checked);
+        layers.Content.classList.toggle("hidden", !inputs.chkContent.checked);
+        layers.Modal.classList.toggle("hidden", !inputs.chkModal.checked);
+      }
+
+      function setLayerZ(el, z) {
+        el.style.setProperty("--z", z);
+        // Pure translateZ for true explode motion (no scaling)
+        el.style.transform = `translateZ(${z}px)`;
+      }
+
+      function applyDepth() {
+        const scale = Number(inputs.depthScale.value) / 100;
+        const d = {
+          Header: Math.round(Number(inputs.depthHeader.value) * scale),
+          Sidebar: Math.round(Number(inputs.depthSidebar.value) * scale),
+          Content: Math.round(Number(inputs.depthContent.value) * scale),
+          Modal: Math.round(Number(inputs.depthModal.value) * scale),
+        };
+
+        setLayerZ(layers.Header, d.Header);
+        setLayerZ(layers.Sidebar, d.Sidebar);
+        setLayerZ(layers.Content, d.Content);
+        setLayerZ(layers.Modal, d.Modal);
+      }
+
+      function applyRotation() {
+        const x = Number(inputs.rotX.value);
+        const y = Number(inputs.rotY.value);
+        const z = Number(inputs.rotZ.value);
+        const base = -400; // keep scene lifted so positive Z is visible
+        viewport.style.transform = `translateZ(${base}px) rotateX(${x}deg) rotateY(${y}deg) rotateZ(${z}deg)`;
+      }
+
+      // Drag to rotate
+      let dragging = false;
+      let last = { x: 0, y: 0 };
+      stage.addEventListener("pointerdown", (e) => {
+        dragging = true;
+        last = { x: e.clientX, y: e.clientY };
+        stage.setPointerCapture(e.pointerId);
+      });
+      stage.addEventListener("pointerup", (e) => {
+        dragging = false;
+        stage.releasePointerCapture(e.pointerId);
+      });
+      stage.addEventListener("pointerleave", () => {
+        dragging = false;
+      });
+      stage.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - last.x;
+        const dy = e.clientY - last.y;
+        last = { x: e.clientX, y: e.clientY };
+
+        inputs.rotY.value = String(
+          Math.max(-180, Math.min(180, Number(inputs.rotY.value) + dx * 0.4))
+        );
+        inputs.rotX.value = String(
+          Math.max(-10, Math.min(85, Number(inputs.rotX.value) - dy * 0.4))
+        );
+        applyRotation();
+      });
+
+      // Scroll to change global depth scale
+      stage.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          const delta = Math.sign(e.deltaY);
+          const v = Number(inputs.depthScale.value) - delta * 6;
+          inputs.depthScale.value = String(Math.max(0, Math.min(200, v)));
+          applyDepth();
+        },
+        { passive: false }
+      );
+
+      // Toggle 2D/3D
+      qs("#toggleMode").addEventListener("click", () => {
+        const isIso = stage.classList.contains("isometric");
+        stage.classList.toggle("isometric", !isIso);
+        stage.classList.toggle("flat", isIso);
+        if (isIso) {
+          inputs.rotX.value = "0";
+          inputs.rotY.value = "0";
+          inputs.rotZ.value = "0";
+        } else {
+          inputs.rotX.value = "58";
+          inputs.rotY.value = "0";
+          inputs.rotZ.value = "45";
+        }
+        applyRotation();
+      });
+
+      // Reset view
+      qs("#resetView").addEventListener("click", () => {
+        inputs.depthHeader.value = "80";
+        inputs.depthSidebar.value = "200";
+        inputs.depthContent.value = "320";
+        inputs.depthModal.value = "480";
+        inputs.depthScale.value = "100";
+        inputs.rotX.value = "58";
+        inputs.rotY.value = "0";
+        inputs.rotZ.value = "45";
+        inputs.chkHeader.checked = true;
+        inputs.chkSidebar.checked = true;
+        inputs.chkContent.checked = true;
+        inputs.chkModal.checked = true;
+        stage.classList.add("isometric");
+        stage.classList.remove("flat");
+        applyVisibility();
+        applyDepth();
+        applyRotation();
+      });
+
+      // Wire inputs
+      [
+        inputs.chkHeader,
+        inputs.chkSidebar,
+        inputs.chkContent,
+        inputs.chkModal,
+      ].forEach((el) => el.addEventListener("change", applyVisibility));
+
+      [
+        inputs.depthHeader,
+        inputs.depthSidebar,
+        inputs.depthContent,
+        inputs.depthModal,
+        inputs.depthScale,
+      ].forEach((el) => el.addEventListener("input", applyDepth));
+
+      [inputs.rotX, inputs.rotY, inputs.rotZ].forEach((el) =>
+        el.addEventListener("input", applyRotation)
+      );
+
+      // Initial paint
+      applyVisibility();
+      applyDepth();
+      applyRotation();
+    </script>
+  </body>
+</html>

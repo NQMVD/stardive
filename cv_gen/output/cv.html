@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Max Mustermann – Lebenslauf</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+  @page { size: A4; margin: 16mm 16mm 16mm 16mm; }
+  html, body {
+    padding: 0; margin: 0;
+    color: #000000;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hero header */
+  
+  .hero {
+    position: relative;
+    min-height: 40mm;
+    display: grid;
+    align-items: center;
+    padding: 6mm 8mm;
+    background: #ffe566;
+    background-image: linear-gradient(135deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.05) 100%);
+    border-radius: 4mm;
+    margin-bottom: 8mm;
+  }
+  .hero.with-photo {
+    grid-template-columns: 1fr auto;
+    gap: 8mm;
+  }
+  .hero .name { font-size: 19pt; font-weight: 800; letter-spacing: .01em; }
+  .hero .role { color: #000000; font-weight: 700; margin-top: 2mm; }
+  .hero .desc { margin-top: 3mm; max-width: 170mm; }
+  .hero .hero-photo-wrap {
+    width: 40mm; height: 40mm;
+    border-radius: 50%;
+    background: #ffe566;
+    display: grid; place-items: center;
+    overflow: hidden;
+    box-shadow: 0 1mm 4mm rgba(0,0,0,.08);
+  }
+  .hero .hero-photo { width: 100%; height: 100%; object-fit: cover; }
+  .hero-divider { height: 1px; background: #000000; margin-top: 4mm; }
+  .hero.hero--slanted {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10mm), 0 100%);
+  }
+  
+
+  .page {
+    display: grid;
+    grid-template-columns: 64mm 8mm 1fr;
+    grid-auto-rows: min-content;
+  }
+  .sidebar { grid-column: 1; }
+  .gap { grid-column: 2; }
+  .main { grid-column: 3; }
+  
+
+  .name { font-size: 17pt; font-weight: 700; letter-spacing: 0.02em; }
+  .role { color: #000000; font-weight: 600; margin-top: 2mm; }
+  .section { margin-top: 12mm; page-break-inside: avoid; }
+  .section-title {
+    font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #000000;
+    border-bottom: 1px solid #000000;
+    padding-bottom: 2mm; margin-bottom: 3mm;
+  }
+  .muted { color: #666; }
+  .badge {
+    background: #ffe566; color: #000000;
+    padding: 1mm 2.5mm; border-radius: 3mm;
+    margin: 1mm 1.5mm 0 0; display: inline-block;
+    font-size: 10pt;
+  }
+  .item { margin-bottom: 4mm; }
+  .item .title { font-weight: 600; }
+  .item .meta {
+    display: flex; gap: 4mm; flex-wrap: wrap;
+    color: #555; font-size: 11pt;
+  }
+  .item .desc { margin-top: 1.5mm; }
+  .list { margin: 0; padding-left: 0; list-style: none; }
+  .list li::before { content: "■"; color: #000000; margin-right: 2.5mm; }
+  .contact { display: grid; gap: 2mm; font-size: 11pt; }
+  .contact .label { font-weight: 600; }
+
+  /* Default rectangular photo in sidebar */
+  .photo-frame { margin-bottom: 4mm; }
+  .photo { width: 100%; border-radius: 2mm; object-fit: cover; display: block; }
+
+  /* Circle portrait with organic cutouts */
+  
+
+  /* Cards, can be used by brutalism and fancy */
+  .card {
+    border-radius: 3mm;
+    background: white;
+  }
+
+  /* Brutalism theme */
+  
+  body.is-brutalism {
+    background: white;
+  }
+  .section-title {
+    border: 2px solid #000000;
+    padding: 2mm 3mm;
+    background: #ffe566;
+    margin-bottom: 4mm;
+  }
+  .card {
+    border: 2px solid #000000;
+    box-shadow: 6px 6px 0 #000;
+    border-radius: 0;
+    padding: 3mm;
+    margin-bottom: 4mm;
+  }
+  .badge {
+    border: 2px solid #000000;
+    background: #fff;
+    border-radius: 0;
+  }
+  .sidebar, .main {
+    padding: 0;
+  }
+  .list li::before {
+    content: "■";
+    color: #000000;
+    margin-right: 2.5mm;
+  }
+  .hero {
+    border: 2px solid #000000;
+    background: #ffe566;
+    box-shadow: 6px 6px 0 #000;
+    border-radius: 0;
+  }
+  
+  </style>
+  </head>
+  <body class="is-brutalism">
+    <header
+      class="hero  hero--classic"
+    >
+      <div class="hero-inner">
+        <div class="hero-meta">
+          <div class="name">Max Mustermann</div>
+          <div class="role">Senior Softwareentwickler</div>
+          <div class="desc">Erfahrener Entwickler mit Fokus auf <b>TypeScript</b>, <b>Node.js</b> und performante Webanwendungen.</div>
+        </div>
+      </div>
+    </header>
+
+    <div
+      class="page "
+    >
+      <aside class="sidebar">
+        <div class="photo-frame">
+          <img class="photo" src="file:../assets/photo.jpg" alt="Foto" />
+        </div>
+
+        <div class="block">
+          <div class="section-title">Kontakt</div>
+          <div class="contact">
+            <div><span class="label">E-Mail:</span> <span>max@example.com</span></div>
+            <div><span class="label">Telefon:</span> <span>+49 170 0000000</span></div>
+            <div><span class="label">Ort:</span> <span>Berlin, Deutschland</span></div>
+            <div><span class="label">LinkedIn:</span> <span>https://linkedin.com/in/max</span></div>
+            <div><span class="label">GitHub:</span> <span>https://github.com/max</span></div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="section-title">Fähigkeiten</div>
+          <div>
+             <span class="badge">TypeScript</span>  <span class="badge">Node.js</span>  <span class="badge">React</span>  <span class="badge">Docker</span>  <span class="badge">CI/CD</span> 
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="section-title">Sprachen</div>
+          <ul class="list">
+            <li>Deutsch – Muttersprache</li>
+            <li>Englisch – C1</li>
+          </ul>
+        </div>
+      </aside>
+      <div class="gap"></div>
+
+      <main class="main">
+
+        <section class="section">
+          <div class="section-title">Berufserfahrung</div>
+          <div class="item no-break card">
+            <div class="title">Senior Software Engineer – Beispiel GmbH</div>
+            <div class="meta">
+              <div>2021-05 – 2025-07</div>
+              <div>
+                Berlin
+                 · Vollzeit
+              </div>
+              <div>Tech: TypeScript, Node.js, Kubernetes</div>
+            </div>
+             <div class="desc">Leitung eines Teams von 5 Entwicklern für B2B-Plattform.</div> 
+            <ul class="list">
+               <li>Migration zu Microservices, -30% Latenz</li>  <li>Aufbau von Observability (OTel, Grafana)</li> 
+            </ul>
+          </div>
+          <div class="item no-break card">
+            <div class="title">Software Engineer – Tech AG</div>
+            <div class="meta">
+              <div>2018-03 – 2021-04</div>
+              <div>
+                München
+                
+              </div>
+              <div>Tech: React, Node.js, PostgreSQL</div>
+            </div>
+            
+            <ul class="list">
+               <li>Kernmodule für Abrechnung entwickelt</li> 
+            </ul>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">Ausbildung</div>
+          <div class="item no-break card">
+            <div class="title">M.Sc. Informatik – TU München</div>
+            <div class="meta">
+              <div>2016 – 2018</div>
+              <div>München</div>
+            </div>
+             <div class="desc">Schwerpunkt: Verteilte Systeme</div> 
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">Projekte</div>
+          <div class="item no-break card">
+            <div class="title">Open Source Tooling</div>
+            <div class="meta">
+              <div>https://github.com/max/tool</div>
+              <div>Tech: TypeScript, CLI</div>
+            </div>
+             <div class="desc">CLI zur Automatisierung von Projekt-Scaffolding.</div> 
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">Zertifikate</div>
+          <ul class="list">
+             <li>AWS Certified Developer – Associate</li> 
+          </ul>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

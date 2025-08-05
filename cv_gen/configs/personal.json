@@ -1,0 +1,64 @@
+{
+  "name": "Max Mustermann",
+  "title": "Senior Softwareentwickler",
+  "photo": "file:../assets/photo.jpg",
+  "summary": "Erfahrener Entwickler mit Fokus auf <b>TypeScript</b>, <b>Node.js</b> und performante Webanwendungen.",
+  "contact": {
+    "email": "max@example.com",
+    "phone": "+49 170 0000000",
+    "location": "Berlin, Deutschland"
+  },
+  "links": [
+    { "label": "LinkedIn", "url": "https://linkedin.com/in/max" },
+    { "label": "GitHub", "url": "https://github.com/max" }
+  ],
+  "skills": ["TypeScript", "Node.js", "React", "Docker", "CI/CD"],
+  "languages": [
+    { "name": "Deutsch", "level": "Muttersprache" },
+    { "name": "Englisch", "level": "C1" }
+  ],
+  "experience": [
+    {
+      "role": "Senior Software Engineer",
+      "company": "Beispiel GmbH",
+      "start": "2021-05",
+      "end": "2025-07",
+      "location": "Berlin",
+      "employmentType": "Vollzeit",
+      "technologies": ["TypeScript", "Node.js", "Kubernetes"],
+      "summary": "Leitung eines Teams von 5 Entwicklern für B2B-Plattform.",
+      "highlights": [
+        "Migration zu Microservices, -30% Latenz",
+        "Aufbau von Observability (OTel, Grafana)"
+      ]
+    },
+    {
+      "role": "Software Engineer",
+      "company": "Tech AG",
+      "start": "2018-03",
+      "end": "2021-04",
+      "location": "München",
+      "technologies": ["React", "Node.js", "PostgreSQL"],
+      "highlights": ["Kernmodule für Abrechnung entwickelt"]
+    }
+  ],
+  "education": [
+    {
+      "degree": "M.Sc. Informatik",
+      "institution": "TU München",
+      "start": "2016",
+      "end": "2018",
+      "location": "München",
+      "notes": "Schwerpunkt: Verteilte Systeme"
+    }
+  ],
+  "projects": [
+    {
+      "name": "Open Source Tooling",
+      "link": "https://github.com/max/tool",
+      "tech": ["TypeScript", "CLI"],
+      "description": "CLI zur Automatisierung von Projekt-Scaffolding."
+    }
+  ],
+  "certifications": ["AWS Certified Developer – Associate"]
+}
