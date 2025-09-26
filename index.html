@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b0f17" />
+    <title>Stardive — Open-Source Craft in a Cosmic Atmosphere</title>
+    <meta
+      name="description"
+      content="Stardive builds elegant open-source tools: terminal utilities, Discord bots orchestrating Minecraft servers via Pueue, and a custom Love2D GUI with MacBook touchpad integration."
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+    <!-- Using Space Grotesk from Google Fonts for body text to match the desired aesthetic. -->
+    <style>
+      /* Space Grotesk is served from Google Fonts */
+    </style>
+    <style>
+      :root {
+        --bg: #070a10;
+        --bg-alt: #0b0f17;
+        --text: #e8eefc;
+        --muted: #9fb0d1;
+        --brand: #7aa7ff;
+        --brand-2: #a57bff;
+        --accent: #5af0d3;
+        --glow: 0 0 0 rgba(0,0,0,0);
+        --font-body: "Space Grotesk", system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+        --font-nav: "Chakra Petch", system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+
+        /* Starfield toggle state */
+        --stars-running: 1;
+      }
+
+      html, body {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        overflow-x: hidden; /* allow vertical exploration */
+        overflow-y: auto; /* ensure page scroll is native and draggable */
+        /* Simplify background to a single gradient to reduce blending costs */
+        background: radial-gradient(1200px 800px at 20% 10%, #0d1320, var(--bg)) no-repeat fixed;
+        color: var(--text);
+        font-family: var(--font-body);
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* Subtle starry film over gradients to avoid flatness */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0) 40%),
+          radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,0.7), rgba(255,255,255,0) 40%),
+          radial-gradient(1px 1px at 80% 20%, rgba(255,255,255,0.8), rgba(255,255,255,0) 40%),
+          radial-gradient(1px 1px at 35% 85%, rgba(255,255,255,0.8), rgba(255,255,255,0) 40%),
+          radial-gradient(1px 1px at 10% 60%, rgba(255,255,255,0.6), rgba(255,255,255,0) 40%),
+          radial-gradient(1px 1px at 90% 50%, rgba(255,255,255,0.65), rgba(255,255,255,0) 40%);
+        opacity: 0.1; /* slightly reduced */
+        z-index: 0;
+      }
+
+      /* Cosmic canvas backdrop */
+      #cosmic-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 1; /* below UI, above background gradients */
+        filter: drop-shadow(0 0 0 rgba(0,0,0,0)); /* enable GPU accel */
+        pointer-events: none; /* never intercept pointer */
+      }
+
+      /* Layer for subtle depth parallax fog */
+      .space-fog {
+        position: fixed;
+        inset: -10vh -10vw; /* slightly larger for parallax movement */
+        z-index: 2;
+        pointer-events: none;
+        /* Remove heavy blend mode to reduce GPU blending work */
+        /* mix-blend-mode: screen; */
+        background:
+          radial-gradient(60vw 60vh at 20% 30%, rgba(90, 240, 211, 0.05), transparent 60%),
+          radial-gradient(70vw 60vh at 80% 70%, rgba(122, 167, 255, 0.05), transparent 65%),
+          radial-gradient(50vw 50vh at 60% 20%, rgba(165, 123, 255, 0.06), transparent 65%);
+        transform: translateZ(0);
+        will-change: transform, opacity;
+        opacity: 0.75; /* slightly reduced */
+      }
+
+      /* App root */
+      #app {
+        position: relative;
+        z-index: 3;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        min-height: 100dvh;
+        overflow: visible; /* allow page scroll to control exploration */
+        pointer-events: auto; /* ensure scrollbars are draggable */
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(122,167,255,0.35) rgba(255,255,255,0.05);
+        /* Backdrop filters are GPU-expensive on some browsers; keep minimal here */
+        backdrop-filter: saturate(110%) blur(0px);
+      }
+
+      #app::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      #app::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #app::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(122,167,255,0.2), rgba(90,240,211,0.2));
+        border-radius: 8px;
+      }
+
+      /* Minimal header scaffold (content will be hydrated by JS app) */
+      header.site-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        padding: 14px clamp(16px, 4vw, 40px);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        /* Fallback to softer, cheaper background for non-Safari */
+        background: rgba(7,10,16,0.72);
+        border-bottom: 1px solid rgba(122, 167, 255, 0.12);
+        /* Only Safari reliably accelerates backdrop-filter without spikes */
+        -webkit-backdrop-filter: blur(10px) saturate(120%);
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--text);
+      }
+      .brand-mark {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px 6px 10px 6px;
+        background: conic-gradient(from 210deg, var(--brand), var(--accent), var(--brand-2), var(--brand));
+        filter: drop-shadow(0 0 12px rgba(122,167,255,0.25));
+        transform: rotate(8deg);
+      }
+      .brand-name {
+        font-weight: 800;
+        letter-spacing: 0.4px;
+        font-family: var(--font-nav);
+      }
+
+      /* Initial hero scaffold */
+      main {
+        position: relative;
+        padding: clamp(24px, 4vw, 42px);
+      }
+      /* Top navbar styling */
+      .top-navbar {
+        display: flex;
+        align-items: center;
+        gap: clamp(12px, 2vw, 24px);
+        font-family: var(--font-nav);
+      }
+      .top-navbar a {
+        position: relative;
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        transition: color 200ms ease;
+      }
+      .top-navbar a:hover {
+        color: #eaf2ff;
+        text-shadow: 0 0 12px rgba(122,167,255,0.25);
+      }
+      .top-navbar .primary-cta {
+        border: 1px solid rgba(122,167,255,0.35);
+        background: linear-gradient(180deg, rgba(14,21,35,0.8), rgba(10,16,27,0.55));
+        color: #eaf2ff;
+      }
+      .top-navbar .primary-cta:hover {
+        border-color: rgba(122,167,255,0.55);
+        box-shadow: 0 6px 24px rgba(122,167,255,0.12), inset 0 0 22px rgba(165,123,255,0.08);
+      }
+      .hero {
+        max-width: 1200px;
+        margin: 8vh auto 6vh;
+        padding: clamp(16px, 2vw, 24px);
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        opacity: 0.9;
+      }
+      .eyebrow-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 35% 35%, #d6f9ff, #7aa7ff 55%, rgba(122,167,255,0) 75%);
+        box-shadow: 0 0 12px 2px rgba(122,167,255,0.45), 0 0 28px 8px rgba(90,240,211,0.18);
+      }
+      h1.hero-title {
+        margin: 14px 0 10px;
+        font-size: clamp(38px, 6vw, 72px);
+        line-height: 1.02;
+        letter-spacing: -0.02em;
+        font-weight: 800;
+        background: linear-gradient(180deg, #eaf2ff 30%, #cfe0ff 60%, #b6d9ff 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow:
+          0 0 18px rgba(122,167,255,0.15),
+          0 0 36px rgba(165,123,255,0.08);
+      }
+      p.hero-subtitle {
+        margin: 10px 0 0;
+        max-width: 70ch;
+        color: var(--muted);
+        font-size: clamp(16px, 2vw, 18px);
+        line-height: 1.7;
+      }
+      /* Ensure primary app sections use Abstrakt body font */
+      .hero, .sd-section, .sd-card, .sd-btn, .sd-tag, .sd-feature, .sd-cta, .sd-input, .sd-nav, .sd-nav__link {
+        font-family: var(--font-body);
+      }
+
+      /* Footer scaffold */
+      footer.site-footer {
+        position: relative;
+        margin-top: 6vh;
+        padding: 28px clamp(16px, 4vw, 40px) 48px;
+        color: var(--muted);
+        border-top: 1px solid rgba(122, 167, 255, 0.08);
+        /* Use a simpler footer background for lower GPU cost */
+        background: rgba(7,10,16,0.72);
+        -webkit-backdrop-filter: blur(6px) saturate(120%);
+      }
+
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        #cosmic-canvas,
+        .space-fog {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="cosmic-canvas" aria-hidden="true"></canvas>
+    <div class="space-fog" aria-hidden="true"></div>
+
+    <div id="app">
+      <header class="site-header" role="banner">
+        <a class="brand" href="#" aria-label="Stardive home">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-name">STARDIVE</span>
+        </a>
+        <nav class="top-navbar" aria-label="Top navigation">
+          <a href="#projects">Projects</a>
+          <a href="#philosophy">Philosophy</a>
+          <a href="#showcase">Showcase</a>
+          <a href="#contact">Contact</a>
+          <a class="primary-cta" href="#contact">Get in Touch</a>
+          <label id="toggle-stars-wrap" style="position:relative;display:inline-flex;align-items:center;gap:8px;margin-left:clamp(8px,2vw,16px);font-family:var(--font-nav);font-size:13px;color:var(--muted);cursor:pointer;">
+            <input id="toggle-stars" type="checkbox" checked style="accent-color:#7aa7ff;width:16px;height:16px;border-radius:4px;">
+            <span>Stars</span>
+            <span id="toggle-stars-tip" role="tooltip" style="position:absolute;right:0;left:auto;top:calc(100% + 8px);padding:8px 10px;border-radius:8px;border:1px solid rgba(122,167,255,0.25);background:rgba(7,10,16,0.92);color:#eaf2ff;white-space:nowrap;pointer-events:none;opacity:0;transform:translateY(-4px);transition:opacity 160ms ease, transform 160ms ease; font-size:12px;">
+              Warning! High GPU usage on non‑Safari Browsers. Prefer Safari, or enable just briefly.
+            </span>
+          </label>
+        </nav>
+      </header>
+
+      <main role="main">
+        <section class="hero" aria-label="Intro">
+          <span class="eyebrow">
+            <span class="eyebrow-dot" aria-hidden="true"></span>
+            OPEN-SOURCE CRAFT • COSMIC CALIBER
+          </span>
+          <h1 class="hero-title">Enter the starfield of crafted software</h1>
+          <p className="hero-subtitle">
+            We build elegant, high-signal tools: terminal utilities that feel hand-polished, a Discord bot that orchestrates Minecraft servers through the Pueue task runner, and a custom Love2D GUI library that speaks native MacBook touchpad. Minimalist by design, cosmic at heart.
+          </p>
+        </section>
+
+        <!-- The rest of the app content mounts here by JS framework -->
+        <div id="mount"></div>
+      </main>
+
+      <footer class="site-footer" role="contentinfo">
+        <small>©</small> <span id="year"></span> Stardive. Open-source, open cosmos.</small>
+      </footer>
+    </div>
+
+    <script>
+      // Year
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      // Cosmic Canvas: tasteful starfield with depth and gentle drift
+      (function cosmic() {
+        const canvas = document.getElementById('cosmic-canvas');
+        const ctx = canvas.getContext('2d', { alpha: true });
+
+        let width = 0, height = 0;
+        // Reduce DPR on non-Safari to lower GPU load
+        const ua = navigator.userAgent;
+        const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+        let dpr = Math.max(1, (window.devicePixelRatio || 1));
+        if (!isSafari) dpr = 1;
+
+        function resize() {
+          width = window.innerWidth;
+          height = window.innerHeight;
+          canvas.width = Math.floor(width * dpr);
+          canvas.height = Math.floor(height * dpr);
+          canvas.style.width = width + 'px';
+          canvas.style.height = height + 'px';
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener('resize', resize, { passive: true });
+        resize();
+
+        const layers = [
+          { countFactor: 0.00018, size: [0.6, 1.1], speed: 0.016, color: 'rgba(255,255,255,0.85)' },
+          { countFactor: 0.00012, size: [0.9, 1.6], speed: 0.028, color: 'rgba(186,209,255,0.85)' },
+          { countFactor: 0.00008, size: [1.1, 2.2], speed: 0.045, color: 'rgba(165,123,255,0.85)' }
+        ];
+
+        let stars = [];
+        let t = 0;
+
+        function initStars() {
+          stars = [];
+          for (const layer of layers) {
+            // Reduce star density on non-Safari to lower overdraw
+            const densityAdjust = isSafari ? 1 : 0.6;
+            const count = Math.ceil((width * height) * layer.countFactor * densityAdjust);
+            for (let i = 0; i < count; i++) {
+              stars.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                size: layer.size[0] + Math.random() * (layer.size[1] - layer.size[0]),
+                speed: layer.speed * (0.75 + Math.random() * 0.5),
+                twinkle: Math.random() * Math.PI * 2,
+                color: layer.color
+              });
+            }
+          }
+        }
+        initStars();
+
+        let rafId = 0;
+        let running = true;
+
+        function draw() {
+          if (!running) return; // fully stop when paused
+
+          ctx.clearRect(0, 0, width, height);
+
+          // Subtle nebula haze
+          const gradient = ctx.createRadialGradient(width * 0.75, height * 0.2, 80, width * 0.75, height * 0.2, Math.max(width, height));
+          gradient.addColorStop(0, 'rgba(122,167,255,0.05)');
+          gradient.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0,0,width,height);
+
+          // Stars
+          for (let i = 0; i < stars.length; i++) {
+            const s = stars[i];
+            // Gentle parallax drift primarily in x to avoid overwhelming motion
+            s.x -= s.speed;
+            if (s.x < -2) s.x = width + 2;
+
+            // Twinkle
+            const tw = 0.75 + Math.sin(t * 0.002 + s.twinkle) * 0.25;
+
+            ctx.globalAlpha = 0.6 * tw;
+            ctx.fillStyle = s.color;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Soft cross glare - reduced strength to lower overdraw
+            ctx.globalAlpha = 0.08 * tw;
+            ctx.fillRect(s.x - s.size * 1.6, s.y - 0.25, s.size * 3.2, 0.5);
+            ctx.fillRect(s.x - 0.25, s.y - s.size * 1.6, 0.5, s.size * 3.2);
+          }
+
+          ctx.globalAlpha = 1;
+          t += 16.67; // approx per frame
+          rafId = requestAnimationFrame(draw);
+        }
+
+        // Parallax for fog layer based on cursor (disabled when off)
+        const fog = document.querySelector('.space-fog');
+        let px = 0, py = 0, tx = 0, ty = 0;
+        let fogRunning = true;
+        function onPointerMove(e) {
+          if (!fogRunning) return;
+          const xr = (e.clientX / window.innerWidth) * 2 - 1;
+          const yr = (e.clientY / window.innerHeight) * 2 - 1;
+          tx = xr * 10;
+          ty = yr * 8;
+        }
+        function tickParallax() {
+          if (!fogRunning) return;
+          px += (tx - px) * 0.06;
+          py += (ty - py) * 0.06;
+          // Remove blend modes to reduce GPU blending cost
+          fog.style.transform = `translate3d(${px}px, ${py}px, 0)`;
+          requestAnimationFrame(tickParallax);
+        }
+        window.addEventListener('pointermove', onPointerMove, { passive: true });
+        tickParallax();
+
+        // Handle visibility to save GPU/CPU
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            cancelAnimationFrame(rafId);
+          } else if (running) {
+            rafId = requestAnimationFrame(draw);
+          }
+        });
+
+        // Start animation loop
+        rafId = requestAnimationFrame(draw);
+
+        // Recreate stars on resize to maintain density feel
+        window.addEventListener('resize', () => {
+          initStars();
+        }, { passive: true });
+
+        // Toggle stars GPU usage (fully stop RAF and fog transforms)
+        (function starsToggle(){
+          const input = document.getElementById('toggle-stars');
+          const wrap = document.getElementById('toggle-stars-wrap');
+          const tip = document.getElementById('toggle-stars-tip');
+          if (!input) return;
+
+          // Tooltip: show on hover/focus for non-Safari only
+          const uaBrowser = navigator.userAgent;
+          const isSafariBrowser = /^((?!chrome|android).)*safari/i.test(uaBrowser);
+
+
+          function showTip(show) {
+            if (!tip) return;
+            if (!isSafariBrowser) {
+              tip.style.opacity = show ? '1' : '0';
+              tip.style.transform = show ? 'translateY(0)' : 'translateY(-4px)';
+            } else {
+              tip.style.opacity = '0';
+            }
+          }
+          wrap?.addEventListener('mouseenter', () => showTip(true));
+          wrap?.addEventListener('mouseleave', () => showTip(false));
+          input?.addEventListener('focus', () => showTip(true));
+          input?.addEventListener('blur', () => showTip(false));
+
+          // First-time warning dialog for non-Safari before enabling
+          let warnedOnce = false;
+
+          function setState(on) {
+            running = on;
+            fogRunning = on;
+            if (!on) {
+              // Stop loops, clear canvas, and hide fog
+              cancelAnimationFrame(rafId);
+              ctx.clearRect(0, 0, width, height);
+              fog.style.display = 'none';
+            } else {
+              // Resume loops and show fog
+              fog.style.display = '';
+              rafId = requestAnimationFrame(draw);
+              // restart fog parallax loop
+              px = py = tx = ty = 0;
+              requestAnimationFrame(tickParallax);
+            }
+          }
+
+          input.addEventListener('change', () => {
+            if (input.checked && !isSafariBrowser && !warnedOnce) {
+              // Warn only once for non-Safari users
+              alert('Heads up: The starfield may increase GPU usage on non‑Safari browsers. Prefer Safari, or enable briefly.');
+              warnedOnce = true;
+            }
+            setState(input.checked);
+          });
+
+          // Default to OFF on non-Safari browsers to avoid GPU spikes
+          const startOn = isSafariBrowser; // Safari: ON, Others: OFF
+          input.checked = startOn;
+          setState(startOn);
+        })();
+      })();
+      </script>
+      <script src="../src/app.js"></script>
+    </body>
+  </html>
